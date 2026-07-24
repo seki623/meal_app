@@ -2,98 +2,32 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（世界樹・幻想タロット＆ガチャ＋背景アニメーション）の画面描画
+🎯 決定モード（安全修正版）の画面描画
 """
 
 import datetime
 import random
 import time
+import os
 import streamlit as st
 import database as db
 
-# 🌸 切り抜いて static/ に置いた画像のパスを指定いたします
+# 画像ファイルのパス（ファイルが存在しない場合は自動で代替スタイルになります）
 TAROT_BACK_IMAGE = "static/tarot_back.jpg"
 
 
 def render_decision_page():
-    # ==================================================================
-    # 🌸 決定モード専用：背景粒子アニメーション（CSS）
-    # ==================================================================
-    bg_animation_html = """
-    <style>
-        /* 決定モード全体の背景設定 */
-        .stApp {
-            background: linear-gradient(180deg, #050b14 0%, #0a111e 50%, #121c2e 100%) !important;
-            background-attachment: fixed;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* アニメーション用コンテナ */
-        .stars-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        /* 粒子（光の粒子）のスタイル */
-        .star {
-            position: absolute;
-            bottom: -10px;
-            background: radial-gradient(circle, #f3e5ab 0%, rgba(212, 175, 55, 0) 70%);
-            border-radius: 50%;
-            opacity: 0.8;
-            animation: floatUp linear infinite;
-        }
-
-        /* 個別の粒子の配置とスピード設定 */
-        .star:nth-child(1) { left: 10%; width: 6px; height: 6px; animation-duration: 8s; animation-delay: 0s; }
-        .star:nth-child(2) { left: 25%; width: 8px; height: 8px; animation-duration: 12s; animation-delay: 2s; }
-        .star:nth-child(3) { left: 40%; width: 5px; height: 5px; animation-duration: 10s; animation-delay: 4s; }
-        .star:nth-child(4) { left: 55%; width: 9px; height: 9px; animation-duration: 14s; animation-delay: 1s; }
-        .star:nth-child(5) { left: 70%; width: 6px; height: 6px; animation-duration: 9s; animation-delay: 3s; }
-        .star:nth-child(6) { left: 85%; width: 7px; height: 7px; animation-duration: 11s; animation-delay: 5s; }
-
-        /* 上昇アニメーションの定義 */
-        @keyframes floatUp {
-            0% {
-                transform: translateY(0) scale(0.8);
-                opacity: 0;
+    # 🌸 決定モード用の軽量な背景グラデーション設定
+    st.markdown("""
+        <style>
+            .stApp {
+                background: linear-gradient(180deg, #0a111e 0%, #1a2332 100%) !important;
             }
-            20% {
-                opacity: 0.8;
-            }
-            80% {
-                opacity: 0.6;
-            }
-            100% {
-                transform: translateY(-105vh) scale(1.2);
-                opacity: 0;
-            }
-        }
-    </style>
+        </style>
+    """, unsafe_allow_html=True)
 
-    <div class="stars-container">
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-    </div>
-    """
-    st.markdown(bg_animation_html, unsafe_allow_html=True)
-
-    # ------------------------------------------------------------------
-    # メインコンテンツ
-    # ------------------------------------------------------------------
     st.title("🎯 決定モード：今日の献立を決めよう")
-    st.markdown("条件を絞り込んでから、神秘的な世界樹のカードかガチャで献立を決定しますの🌸")
+    st.markdown("条件を絞り込んでから、神秘的なカードかガチャで献立を決定しますの🌸")
 
     # ---- 条件絞り込み ----
     col1, col2, col3 = st.columns(3)
@@ -123,14 +57,14 @@ def render_decision_page():
     tab_tarot, tab_gacha = st.tabs(["🔮 タロットカード", "🎰 ガチャガチャ"])
 
     # ==================================================================
-    # 🌸 タブ1：幻想フリップ・タロットカード
+    # 🌸 タブ1：タロットカード
     # ==================================================================
     with tab_tarot:
         st.markdown("神秘的なカードの中から、直感で1枚選んでタップしてくださいませ✨")
 
         num_cards = min(4, len(candidates))
 
-        # 初期化・シャッフル
+        # セッション初期化・シャッフル
         if "tarot_deck" not in st.session_state or len(st.session_state.get("tarot_deck", [])) != num_cards or st.button("🂠 カードをシャッフルする", key="shuffle_tarot"):
             st.session_state.tarot_deck = random.sample(candidates, num_cards)
             st.session_state.tarot_selected_idx = None
@@ -140,9 +74,13 @@ def render_decision_page():
         actual_deck_size = len(st.session_state.tarot_deck)
         cols = st.columns(actual_deck_size)
 
+        # 背景画像が存在するかチェック
+        has_image = os.path.exists(TAROT_BACK_IMAGE)
+        bg_style = f"background-image: url('{TAROT_BACK_IMAGE}'); background-size: cover;" if has_image else "background: linear-gradient(135deg, #1e293b, #0f172a);"
+
         for idx in range(actual_deck_size):
             with cols[idx]:
-                is_selected = (st.session_state.tarot_selected_idx == idx)
+                is_selected = (st.session_state.get("tarot_selected_idx") == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
                 card_html = f"""
@@ -150,7 +88,7 @@ def render_decision_page():
                     .card-container {{
                         perspective: 1000px;
                         width: 100%;
-                        height: 200px;
+                        height: 180px;
                         margin-bottom: 10px;
                     }}
                     .card-inner {{
@@ -161,7 +99,7 @@ def render_decision_page():
                         transition: transform 0.8s ease-in-out;
                         transform-style: preserve-3d;
                         border-radius: 12px;
-                        box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
                     }}
                     .card-flipped {{
                         transform: rotateY(180deg);
@@ -177,15 +115,12 @@ def render_decision_page():
                         flex-direction: column;
                         align-items: center;
                         justify-content: center;
-                        padding: 12px;
+                        padding: 10px;
                         box-sizing: border-box;
                     }}
                     .card-front {{
-                        background-image: url('{TAROT_BACK_IMAGE}');
-                        background-size: cover;
-                        background-position: center;
+                        {bg_style}
                         border: 2px solid #d4af37;
-                        background-color: #0a111e;
                     }}
                     .card-back {{
                         background: linear-gradient(145deg, #0f172a, #1e293b);
@@ -193,15 +128,15 @@ def render_decision_page():
                         transform: rotateY(180deg);
                         border: 2px solid #d4af37;
                         font-weight: bold;
-                        font-size: 15px;
+                        font-size: 14px;
                         text-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
                     }}
                 </style>
                 <div class="card-container">
                     <div class="card-inner {'card-flipped' if is_selected else ''}">
-                        <div class="card-front"></div>
+                        <div class="card-front">{'<div style="color:#d4af37; font-size:24px;">🔮</div>' if not has_image else ''}</div>
                         <div class="card-back">
-                            <div style="font-size: 11px; color: #a1a1aa; margin-bottom: 4px;">✨ 今日の献立 ✨</div>
+                            <div style="font-size: 10px; color: #a1a1aa; margin-bottom: 4px;">✨ 今日の献立 ✨</div>
                             <div>{recipe['name']}</div>
                         </div>
                     </div>
@@ -214,7 +149,7 @@ def render_decision_page():
                     st.rerun()
 
         # 結果表示
-        if st.session_state.tarot_selected_idx is not None and st.session_state.tarot_selected_idx < actual_deck_size:
+        if st.session_state.get("tarot_selected_idx") is not None and st.session_state.tarot_selected_idx < actual_deck_size:
             selected_idx = st.session_state.tarot_selected_idx
             chosen_recipe = st.session_state.tarot_deck[selected_idx]
 
