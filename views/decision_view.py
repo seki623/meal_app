@@ -286,6 +286,21 @@ def render_decision_page():
         <div class="twinkle-star ts-13"></div>
         <div class="twinkle-star ts-14"></div>
         <div class="twinkle-star ts-15"></div>
+	<div class="twinkle-star ts-16"></div>
+        <div class="twinkle-star ts-17"></div>
+        <div class="twinkle-star ts-18"></div>
+        <div class="twinkle-star ts-19"></div>
+        <div class="twinkle-star ts-20"></div>
+        <div class="twinkle-star ts-21"></div>
+        <div class="twinkle-star ts-22"></div>
+        <div class="twinkle-star ts-23"></div>
+        <div class="twinkle-star ts-24"></div>
+        <div class="twinkle-star ts-25"></div>
+        <div class="twinkle-star ts-26"></div>
+        <div class="twinkle-star ts-27"></div>
+        <div class="twinkle-star ts-28"></div>
+        <div class="twinkle-star ts-29"></div>
+        <div class="twinkle-star ts-30"></div>
         <div class="shooting-star"></div>
     </div>
     """
