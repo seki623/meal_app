@@ -2,7 +2,7 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（世界樹・幻想タロット＆ガチャ）の画面描画
+🎯 決定モード（世界樹・幻想タロット＆ガチャ＋背景アニメーション）の画面描画
 """
 
 import datetime
@@ -16,8 +16,83 @@ TAROT_BACK_IMAGE = "static/tarot_back.jpg"
 
 
 def render_decision_page():
-    st.title("🎯 決定モード：今日の献立を決めよう")
+    # ==================================================================
+    # 🌸 決定モード専用：背景粒子アニメーション（CSS）
+    # ==================================================================
+    bg_animation_html = """
+    <style>
+        /* 決定モード全体の背景設定 */
+        .stApp {
+            background: linear-gradient(180deg, #050b14 0%, #0a111e 50%, #121c2e 100%) !important;
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
 
+        /* アニメーション用コンテナ */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        /* 粒子（光の粒子）のスタイル */
+        .star {
+            position: absolute;
+            bottom: -10px;
+            background: radial-gradient(circle, #f3e5ab 0%, rgba(212, 175, 55, 0) 70%);
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: floatUp linear infinite;
+        }
+
+        /* 個別の粒子の配置とスピード設定 */
+        .star:nth-child(1) { left: 10%; width: 6px; height: 6px; animation-duration: 8s; animation-delay: 0s; }
+        .star:nth-child(2) { left: 25%; width: 8px; height: 8px; animation-duration: 12s; animation-delay: 2s; }
+        .star:nth-child(3) { left: 40%; width: 5px; height: 5px; animation-duration: 10s; animation-delay: 4s; }
+        .star:nth-child(4) { left: 55%; width: 9px; height: 9px; animation-duration: 14s; animation-delay: 1s; }
+        .star:nth-child(5) { left: 70%; width: 6px; height: 6px; animation-duration: 9s; animation-delay: 3s; }
+        .star:nth-child(6) { left: 85%; width: 7px; height: 7px; animation-duration: 11s; animation-delay: 5s; }
+
+        /* 上昇アニメーションの定義 */
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.8);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.8;
+            }
+            80% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-105vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <div class="stars-container">
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+    </div>
+    """
+    st.markdown(bg_animation_html, unsafe_allow_html=True)
+
+    # ------------------------------------------------------------------
+    # メインコンテンツ
+    # ------------------------------------------------------------------
+    st.title("🎯 決定モード：今日の献立を決めよう")
     st.markdown("条件を絞り込んでから、神秘的な世界樹のカードかガチャで献立を決定しますの🌸")
 
     # ---- 条件絞り込み ----
@@ -70,7 +145,6 @@ def render_decision_page():
                 is_selected = (st.session_state.tarot_selected_idx == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
-                # 素材集の世界観（ダークネイビー×ゴールド枠）を取り入れたCSS
                 card_html = f"""
                 <style>
                     .card-container {{
