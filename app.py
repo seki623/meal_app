@@ -21,12 +21,12 @@ st.set_page_config(page_title="毎日ごはん記録＆献立ルーレット", p
 db.init_db()
 
 # セッションステート初期化
-if "roulette_result" not in st.session_state:
-    st.session_state.roulette_result = None
-if "amidakuji_data" not in st.session_state:
-    st.session_state.amidakuji_data = None
-if "amidakuji_results" not in st.session_state:
-    st.session_state.amidakuji_results = None
+if "tarot_deck" not in st.session_state:
+    st.session_state.tarot_deck = []
+if "tarot_selected_idx" not in st.session_state:
+    st.session_state.tarot_selected_idx = None
+if "gacha_result" not in st.session_state:
+    st.session_state.gacha_result = None
 if "editing_recipe_id" not in st.session_state:
     st.session_state.editing_recipe_id = None
 
