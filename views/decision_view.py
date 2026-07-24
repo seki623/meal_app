@@ -13,8 +13,6 @@ import database as db
 
 # 高級感のあるタロットカード裏面画像URL
 TAROT_BACK_IMAGE = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=400&q=80"
-# ガチャガチャ用のカプセル画像URL
-GACHA_MACHINE_IMAGE = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80"
 
 
 def render_decision_page():
@@ -55,21 +53,22 @@ def render_decision_page():
     with tab_tarot:
         st.markdown("神秘的なカードの中から、直感で1枚選んでタップしてくださいませ✨")
 
-        num_cards = min(4, len(candidates))  # スマホで見やすいよう4枚表示
+        # 🌸 修正点1：候補件数と上限4枚の小さい方を全体のカード枚数といたします
+        num_cards = min(4, len(candidates))
 
-        # 初期化・シャッフル
-        if "tarot_deck" not in st.session_state or st.button("🂠 カードをシャッフルする", key="shuffle_tarot"):
+        # 初期化・シャッフル（デッキの枚数と num_cards を厳密に一致させます）
+        if "tarot_deck" not in st.session_state or len(st.session_state.get("tarot_deck", [])) != num_cards or st.button("🂠 カードをシャッフルする", key="shuffle_tarot"):
             st.session_state.tarot_deck = random.sample(candidates, num_cards)
             st.session_state.tarot_selected_idx = None
 
         st.markdown("---")
 
-        # カード列の表示
-        cols = st.columns(num_cards)
+        # 🌸 修正点2：実際のデッキ数（len(tarot_deck)）に合わせてカラムを生成いたします
+        actual_deck_size = len(st.session_state.tarot_deck)
+        cols = st.columns(actual_deck_size)
 
-        for idx, col in enumerate(cols):
-            with col:
-                # すでに選択されたカードかどうかの判定
+        for idx in range(actual_deck_size):
+            with cols[idx]:
                 is_selected = (st.session_state.tarot_selected_idx == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
@@ -132,12 +131,12 @@ def render_decision_page():
                 """
                 st.markdown(card_html, unsafe_allow_html=True)
 
-                if st.button("このカードをめくる", key=f"tarot_btn_{idx}", use_container_width=True):
+                if st.button("めくる", key=f"tarot_btn_{idx}", use_container_width=True):
                     st.session_state.tarot_selected_idx = idx
                     st.rerun()
 
-        # 結果表示（風船アニメーションなし）
-        if st.session_state.tarot_selected_idx is not None:
+        # 結果表示
+        if st.session_state.tarot_selected_idx is not None and st.session_state.tarot_selected_idx < actual_deck_size:
             selected_idx = st.session_state.tarot_selected_idx
             chosen_recipe = st.session_state.tarot_deck[selected_idx]
 
@@ -166,7 +165,6 @@ def render_decision_page():
         if st.button("🎰 ガチャを回す", key="turn_gacha", type="primary", use_container_width=True):
             placeholder = st.empty()
 
-            # 静かなテキストカウントダウン演出（雪や風船はなし）
             for i in range(3, 0, -1):
                 placeholder.markdown(f"### 🌀 ガチャガチャ回転中... {i}")
                 time.sleep(0.5)
@@ -175,7 +173,6 @@ def render_decision_page():
             st.session_state.gacha_result = final_recipe
             placeholder.empty()
 
-        # 結果表示（雪アニメーションなし）
         if st.session_state.get("gacha_result"):
             r = st.session_state.gacha_result
 
