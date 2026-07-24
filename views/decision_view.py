@@ -2,7 +2,7 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（控えめな流れ星＆淡い星空・ボタン非表示版）
+🎯 決定モード（ボタン完全消去・星空増量＆ランダム点滅・ゆっくり反転版）
 """
 
 import datetime
@@ -47,7 +47,7 @@ def render_decision_page():
         }
 
         /* ------------------------------------
-           ✨ 淡く点滅する星空
+           ✨ 増量＆ランダム点滅する星空
         ------------------------------------ */
         .starfield {
             position: fixed;
@@ -61,8 +61,8 @@ def render_decision_page():
         }
 
         @keyframes twinkle {
-            0%, 100% { opacity: 0.2; transform: scale(0.8); }
-            50% { opacity: 0.8; transform: scale(1.2); }
+            0%, 100% { opacity: 0.15; transform: scale(0.7); }
+            50% { opacity: 0.95; transform: scale(1.3); }
         }
 
         .twinkle-star {
@@ -70,15 +70,25 @@ def render_decision_page():
             background: #fff;
             border-radius: 50%;
             box-shadow: 0 0 6px #fff;
-            animation: twinkle 4s infinite ease-in-out;
+            animation: twinkle linear infinite;
         }
 
-        .ts-1 { top: 15%; left: 20%; width: 2px; height: 2px; animation-delay: 0s; }
-        .ts-2 { top: 35%; left: 75%; width: 3px; height: 3px; animation-delay: 1.5s; }
-        .ts-3 { top: 60%; left: 10%; width: 2px; height: 2px; animation-delay: 2.8s; }
-        .ts-4 { top: 75%; left: 85%; width: 2px; height: 2px; animation-delay: 0.7s; }
-        .ts-5 { top: 25%; left: 50%; width: 3px; height: 3px; animation-delay: 3.2s; }
-        .ts-6 { top: 85%; left: 40%; width: 2px; height: 2px; animation-delay: 2.1s; }
+        /* 個別の位置・サイズ・遅延・周波数の分散 */
+        .ts-1  { top: 10%; left: 15%; width: 2px; height: 2px; animation-duration: 3.2s; animation-delay: 0.0s; }
+        .ts-2  { top: 20%; left: 80%; width: 3px; height: 3px; animation-duration: 4.5s; animation-delay: 1.2s; }
+        .ts-3  { top: 35%; left: 25%; width: 2px; height: 2px; animation-duration: 2.8s; animation-delay: 2.4s; }
+        .ts-4  { top: 45%; left: 70%; width: 2px; height: 2px; animation-duration: 5.1s; animation-delay: 0.7s; }
+        .ts-5  { top: 55%; left: 10%; width: 3px; height: 3px; animation-duration: 3.8s; animation-delay: 3.1s; }
+        .ts-6  { top: 65%; left: 85%; width: 2px; height: 2px; animation-duration: 4.2s; animation-delay: 1.8s; }
+        .ts-7  { top: 75%; left: 30%; width: 2px; height: 2px; animation-duration: 3.0s; animation-delay: 0.4s; }
+        .ts-8  { top: 85%; left: 60%; width: 3px; height: 3px; animation-duration: 4.8s; animation-delay: 2.9s; }
+        .ts-9  { top: 15%; left: 45%; width: 2px; height: 2px; animation-duration: 3.5s; animation-delay: 1.5s; }
+        .ts-10 { top: 30%; left: 90%; width: 2px; height: 2px; animation-duration: 4.0s; animation-delay: 3.7s; }
+        .ts-11 { top: 50%; left: 40%; width: 3px; height: 3px; animation-duration: 5.5s; animation-delay: 0.2s; }
+        .ts-12 { top: 70%; left: 18%; width: 2px; height: 2px; animation-duration: 3.3s; animation-delay: 2.1s; }
+        .ts-13 { top: 80%; left: 95%; width: 2px; height: 2px; animation-duration: 4.1s; animation-delay: 1.0s; }
+        .ts-14 { top: 90%; left: 35%; width: 3px; height: 3px; animation-duration: 3.7s; animation-delay: 2.6s; }
+        .ts-15 { top: 05%; left: 65%; width: 2px; height: 2px; animation-duration: 4.6s; animation-delay: 0.9s; }
 
         /* ------------------------------------
            🌠 15秒に1回の控えめな流れ星
@@ -106,21 +116,10 @@ def render_decision_page():
         }
 
         @keyframes shoot {
-            0% {
-                transform: rotate(315deg) translateX(0);
-                opacity: 0;
-            }
-            3% {
-                opacity: 1;
-            }
-            15% {
-                transform: rotate(315deg) translateX(-600px);
-                opacity: 0;
-            }
-            100% {
-                transform: rotate(315deg) translateX(-600px);
-                opacity: 0;
-            }
+            0% { transform: rotate(315deg) translateX(0); opacity: 0; }
+            3% { opacity: 1; }
+            15% { transform: rotate(315deg) translateX(-600px); opacity: 0; }
+            100% { transform: rotate(315deg) translateX(-600px); opacity: 0; }
         }
 
         /* ------------------------------------
@@ -138,12 +137,8 @@ def render_decision_page():
         }
 
         @keyframes goldPulseBtn {
-            0%, 100% {
-                box-shadow: 0 8px 20px rgba(201, 169, 79, 0.3);
-            }
-            50% {
-                box-shadow: 0 10px 28px rgba(224, 196, 122, 0.55);
-            }
+            0%, 100% { box-shadow: 0 8px 20px rgba(201, 169, 79, 0.3); }
+            50% { box-shadow: 0 10px 28px rgba(224, 196, 122, 0.55); }
         }
 
         .brand {
@@ -160,7 +155,7 @@ def render_decision_page():
             letter-spacing: .05em;
         }
 
-        /* Streamlit標準ボタンの装飾 */
+        /* Streamlit標準ボタンの装飾（シャッフル・ガチャボタン用） */
         .stButton > button {
             width: 100% !important;
             margin-top: 12px !important;
@@ -181,9 +176,9 @@ def render_decision_page():
         }
 
         /* ------------------------------------
-           🂠 タロットカード＆隠しタップ領域
+           🂠 タロットカード＆ボタン完全隠蔽領域
         ------------------------------------ */
-        .tarot-col-wrapper {
+        .tarot-card-box {
             position: relative;
             width: 100%;
             height: 200px;
@@ -206,7 +201,8 @@ def render_decision_page():
             width: 100%;
             height: 100%;
             text-align: center;
-            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* 🌸 ゆっくりゆったり反転（1.4s） */
+            transition: transform 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
             transform-style: preserve-3d;
             border-radius: 14px;
         }
@@ -246,18 +242,19 @@ def render_decision_page():
             text-shadow: 0 0 6px rgba(201, 169, 79, 0.5);
         }
 
-        /* カード裏の透明タップボタン（画面から完全透明化＆カードの上に重ねる） */
-        .tarot-col-wrapper .stButton {
+        /* 🌸 カード上のボタン要素を完全に透明化＆全面上書き */
+        .tarot-card-box div[data-testid="stButton"] {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
             height: 100% !important;
-            z-index: 2 !important;
+            z-index: 10 !important;
             margin: 0 !important;
+            padding: 0 !important;
         }
 
-        .tarot-col-wrapper .stButton > button {
+        .tarot-card-box div[data-testid="stButton"] > button {
             width: 100% !important;
             height: 100% !important;
             opacity: 0 !important;
@@ -266,6 +263,9 @@ def render_decision_page():
             box-shadow: none !important;
             animation: none !important;
             cursor: pointer !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 200px !important;
         }
     </style>
 
@@ -277,6 +277,15 @@ def render_decision_page():
         <div class="twinkle-star ts-4"></div>
         <div class="twinkle-star ts-5"></div>
         <div class="twinkle-star ts-6"></div>
+        <div class="twinkle-star ts-7"></div>
+        <div class="twinkle-star ts-8"></div>
+        <div class="twinkle-star ts-9"></div>
+        <div class="twinkle-star ts-10"></div>
+        <div class="twinkle-star ts-11"></div>
+        <div class="twinkle-star ts-12"></div>
+        <div class="twinkle-star ts-13"></div>
+        <div class="twinkle-star ts-14"></div>
+        <div class="twinkle-star ts-15"></div>
         <div class="shooting-star"></div>
     </div>
     """
@@ -344,9 +353,9 @@ def render_decision_page():
                 is_selected = (st.session_state.get("tarot_selected_idx") == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
-                # カード枠と透明ボタンを1つのラッパーで重ね合わせ
-                card_html = f"""
-                <div class="tarot-col-wrapper">
+                # カード枠と透明なStreamlitボタンを完全一体化
+                st.markdown(f"""
+                <div class="tarot-card-box">
                     <div class="card-container">
                         <div class="card-inner {'card-flipped' if is_selected else ''}">
                             <div class="card-front" style="{bg_style}">
@@ -358,13 +367,13 @@ def render_decision_page():
                             </div>
                         </div>
                     </div>
-                </div>
-                """
-                st.markdown(card_html, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-                if st.button("", key=f"tarot_btn_{idx}"):
+                if st.button(" ", key=f"tarot_btn_{idx}"):
                     st.session_state.tarot_selected_idx = idx
                     st.rerun()
+
+                st.markdown("</div>", unsafe_allow_html=True)
 
         # 結果表示
         if st.session_state.get("tarot_selected_idx") is not None and st.session_state.tarot_selected_idx < actual_deck_size:
