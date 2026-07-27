@@ -211,3 +211,47 @@ def get_meal_log_dates_in_month(year: int, month: int) -> set:
     )
     logs = response.data or []
     return {r["log_date"] for r in logs}
+
+# database.py の末尾に追記してくださいませ🌸
+def get_weekly_plan(start_date_str):
+    """指定された週（月曜日開始）のメモを取得"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS weekly_plans (
+            start_date TEXT,
+            day_index TEXT,
+            memo TEXT,
+            PRIMARY KEY (start_date, day_index)
+        )
+    """)
+    c.execute("SELECT day_index, memo FROM weekly_plans WHERE start_date = ?", (start_date_str,))
+    rows = c.fetchall()
+    conn.close()
+    
+    # day_index が数字（0~6）の場合は整数に変換して辞書に格納
+    plan_dict = {}
+    for row in rows:
+        key = int(row[0]) if row[0].isdigit() else row[0]
+        plan_dict[key] = row[1]
+    return plan_dict
+
+def save_weekly_plan(start_date_str, plan_dict):
+    """指定された週（月曜日開始）のメモを保存"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS weekly_plans (
+            start_date TEXT,
+            day_index TEXT,
+            memo TEXT,
+            PRIMARY KEY (start_date, day_index)
+        )
+    """)
+    for day_idx, memo in plan_dict.items():
+        c.execute("""
+            INSERT OR REPLACE INTO weekly_plans (start_date, day_index, memo)
+            VALUES (?, ?, ?)
+        """, (start_date_str, str(day_idx), memo))
+    conn.commit()
+    conn.close()
