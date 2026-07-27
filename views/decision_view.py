@@ -2,7 +2,7 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（カード直接タップ・めくりアニメーション完全対応版）
+🎯 決定モード（カード直押し・余計なボタン完全排除版）
 """
 
 import datetime
@@ -169,6 +169,7 @@ def render_decision_page():
             letter-spacing: .05em;
         }
 
+        /* 通常の操作ボタン（シャッフル・ガチャ・保存用） */
         .stButton > button {
             width: 100% !important;
             margin-top: 12px !important;
@@ -189,74 +190,51 @@ def render_decision_page():
         }
 
         /* ------------------------------------
-           🂠 タロットカード＆幅収縮アニメーション
+           🂠 タロットカード専用ボタンデザイン（黄色ボタンを排除）
         ------------------------------------ */
-        .tarot-card-box {
-            position: relative;
-            width: 100%;
-            height: 200px;
-            margin-bottom: 10px;
-        }
-
-        .card-element {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 2px solid var(--gold);
-            animation: goldGlow 4s infinite ease-in-out;
-            pointer-events: none;
-            z-index: 1;
-            transition: transform 0.2s ease-in-out;
-        }
-
-        /* タップ時に横幅を0に縮めるクラス */
-        .card-element.flipping {
-            transform: scaleX(0);
-        }
-
-        /* めくられた後の表面 */
-        .card-back-face {
-            background: linear-gradient(145deg, var(--navy-3), var(--navy-2));
-            color: var(--ivory);
-            font-family: 'Shippori Mincho', serif;
-            font-weight: 700;
-            font-size: 15px;
-            text-shadow: 0 0 6px rgba(201, 169, 79, 0.5);
-            text-align: center;
-        }
-
-        /* 🌸 カード上の透明ボタン */
-        .tarot-card-box div[data-testid="stButton"] {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
+        /* カード枠コンテナ内のボタンをカードそのものにする */
+        .card-container div[data-testid="stButton"] > button {
             width: 100% !important;
-            height: 100% !important;
-            z-index: 10 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .tarot-card-box div[data-testid="stButton"] button {
-            width: 100% !important;
-            height: 200px !important;
-            opacity: 0 !important;
-            background: transparent !important;
-            border: none !important;
-            outline: none !important;
-            box-shadow: none !important;
+            height: 210px !important;
+            margin-top: 0 !important;
+            padding: 12px !important;
+            border-radius: 14px !important;
+            border: 2px solid var(--gold) !important;
+            animation: goldGlow 4s infinite ease-in-out !important;
             cursor: pointer !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            transition: transform 0.25s ease-in-out, background 0.3s !important;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* カードホバー・アクティブ時 */
+        .card-container div[data-testid="stButton"] > button:hover {
+            transform: translateY(-4px) scale(1.02) !important;
+        }
+        .card-container div[data-testid="stButton"] > button:active {
+            transform: scaleX(0) !important; /* 押し込んだ瞬間に横幅0に縮む */
+        }
+
+        /* 裏面カードスタイル */
+        .card-container.back-card div[data-testid="stButton"] > button {
+            color: var(--gold-2) !important;
+            font-size: 32px !important;
+            text-shadow: 0 0 10px rgba(224, 196, 122, 0.8) !important;
+        }
+
+        /* 表面（めくられた後）スタイル */
+        .card-container.front-card div[data-testid="stButton"] > button {
+            background: linear-gradient(145deg, var(--navy-3), var(--navy-2)) !important;
+            color: var(--ivory) !important;
+            font-family: 'Shippori Mincho', serif !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
+            line-height: 1.5 !important;
+            text-shadow: 0 0 8px rgba(201, 169, 79, 0.6) !important;
+            border-color: var(--gold-2) !important;
         }
     </style>
 
@@ -344,51 +322,35 @@ def render_decision_page():
                 is_selected = (st.session_state.get("tarot_selected_idx") == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
+                # 選択状態によってボタン（＝カード本体）のテキストとクラスを切り替え
                 if not is_selected:
-                    card_html = f"""
-                    <div class="tarot-card-box" id="card-box-{idx}">
-                        <div class="card-element card-front-face" id="card-elem-{idx}" style="{bg_style}">
-                            {'<div style="color:var(--gold-2); font-size:28px; filter: drop-shadow(0 0 6px rgba(224,196,122,0.8));">🔮</div>' if not has_image else ''}
-                        </div>
-                    </div>
-                    """
+                    btn_text = "🔮" if not has_image else ""
+                    container_class = "card-container back-card"
                 else:
-                    card_html = f"""
-                    <div class="tarot-card-box">
-                        <div class="card-element card-back-face">
-                            <div style="font-size: 10px; color: var(--gold-2); margin-bottom: 6px; letter-spacing: .05em;">✨ 今日の献立 ✨</div>
-                            <div>{recipe['name']}</div>
-                        </div>
-                    </div>
-                    """
+                    btn_text = f"✨ 今日の献立 ✨\n\n{recipe['name']}"
+                    container_class = "card-container front-card"
 
-                st.markdown(card_html, unsafe_allow_html=True)
+                # カード枠用のdivで囲む
+                st.markdown(f'<div class="{container_class}">', unsafe_allow_html=True)
 
-                # カード押下時のイベント
-                if st.button("", key=f"tarot_btn_{idx}"):
+                # 裏面画像がある場合のCSS（動的設定）
+                if not is_selected and has_image:
+                    st.markdown(f"""
+                    <style>
+                        .card-container.back-card div[data-testid="stButton"] > button {{
+                            background-image: url('{TAROT_BACK_IMAGE}') !important;
+                            background-size: cover !important;
+                            background-position: center !important;
+                        }}
+                    </style>
+                    """, unsafe_allow_html=True)
+
+                # ボタンそのものがカードになります
+                if st.button(btn_text, key=f"tarot_card_{idx}"):
                     st.session_state.tarot_selected_idx = idx
                     st.rerun()
 
-        # JavaScriptによるリアルタイムタップ時のアニメーション連動
-        st.components.v1.html("""
-        <script>
-            const doc = window.parent.document;
-            const boxes = doc.querySelectorAll('.tarot-card-box');
-            
-            boxes.forEach((box) => {
-                const btn = box.querySelector('button');
-                const elem = box.querySelector('.card-element');
-                
-                if (btn && elem && !btn.dataset.hasListener) {
-                    btn.dataset.hasListener = "true";
-                    btn.addEventListener('click', (e) => {
-                        // タップ時に幅を0にアニメーション縮小させる
-                        elem.classList.add('flipping');
-                    });
-                }
-            });
-        </script>
-        """, height=0)
+                st.markdown('</div>', unsafe_allow_html=True)
 
         # 結果表示
         if st.session_state.get("tarot_selected_idx") is not None and st.session_state.tarot_selected_idx < actual_deck_size:
