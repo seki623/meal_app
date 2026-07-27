@@ -13,6 +13,7 @@ import database as db
 from views.record_view import render_record_page
 from views.search_view import render_search_page
 from views.decision_view import render_decision_page
+from views.weekly_plan_view import render_weekly_plan_page
 
 # ------------------------------------------------------------------
 # 初期化
@@ -36,7 +37,7 @@ if "editing_recipe_id" not in st.session_state:
 st.sidebar.title("🍚 メニュー")
 mode = st.sidebar.radio(
     "モードを選択してください",
-    ["📅 記録モード", "🔍 検索モード", "🎯 決定モード"],
+    ["📅 記録モード", "🔍 検索モード", "🎯 決定モード", "📝 週間メモ"],
 )
 
 st.sidebar.markdown("---")
@@ -51,3 +52,8 @@ elif mode == "🔍 検索モード":
     render_search_page()
 elif mode == "🎯 決定モード":
     render_decision_page()
+elif mode == "📝 週間メモ":
+    render_weekly_plan_page()
+
+
+   
