@@ -2,7 +2,7 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（ボタン完全消去強化・星空30個＆ランダム点滅版）
+🎯 決定モード（横幅収縮によるカードめくりアニメーション版）
 """
 
 import datetime
@@ -191,7 +191,7 @@ def render_decision_page():
         }
 
         /* ------------------------------------
-           🂠 タロットカード＆ボタン完全隠蔽領域
+           🂠 タロットカード＆幅収縮めくりアニメーション
         ------------------------------------ */
         .tarot-card-box {
             position: relative;
@@ -200,37 +200,18 @@ def render_decision_page():
             margin-bottom: 10px;
         }
 
-        .card-container {
-            perspective: 1000px;
-            width: 100%;
-            height: 100%;
+        /* 横幅を縮小して広げるフリップアニメーション（0.3秒） */
+        @keyframes flipOpen {
+            0% { transform: scaleX(0); }
+            100% { transform: scaleX(1); }
+        }
+
+        .card-element {
             position: absolute;
             top: 0;
             left: 0;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .card-inner {
-            position: relative;
             width: 100%;
             height: 100%;
-            text-align: center;
-            transition: transform 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-            transform-style: preserve-3d;
-            border-radius: 14px;
-        }
-
-        .card-flipped {
-            transform: rotateY(180deg);
-        }
-
-        .card-front, .card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
             border-radius: 14px;
             display: flex;
             flex-direction: column;
@@ -238,22 +219,26 @@ def render_decision_page():
             justify-content: center;
             padding: 12px;
             box-sizing: border-box;
-            animation: goldGlow 4s infinite ease-in-out;
-        }
-
-        .card-front {
             border: 2px solid var(--gold);
+            animation: goldGlow 4s infinite ease-in-out;
+            pointer-events: none;
+            z-index: 1;
         }
 
-        .card-back {
+        .card-front-face {
+            /* 裏面画像を表示 */
+        }
+
+        .card-back-face {
+            /* 表面（献立名）を表示 */
             background: linear-gradient(145deg, var(--navy-3), var(--navy-2));
             color: var(--ivory);
-            transform: rotateY(180deg);
-            border: 2px solid var(--gold);
             font-family: 'Shippori Mincho', serif;
             font-weight: 700;
             font-size: 15px;
             text-shadow: 0 0 6px rgba(201, 169, 79, 0.5);
+            text-align: center;
+            animation: flipOpen 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards, goldGlow 4s infinite ease-in-out;
         }
 
         /* 🌸 カード領域内の Streamlit ボタンを全面透明化してカードに上書き */
@@ -377,21 +362,24 @@ def render_decision_page():
                 is_selected = (st.session_state.get("tarot_selected_idx") == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
-                # カードボックスの中に HTML と ボタンを完全に包含させる記述
-                st.markdown(f"""
-                <div class="tarot-card-box">
-                    <div class="card-container">
-                        <div class="card-inner {'card-flipped' if is_selected else ''}">
-                            <div class="card-front" style="{bg_style}">
-                                {'<div style="color:var(--gold-2); font-size:28px; filter: drop-shadow(0 0 6px rgba(224,196,122,0.8));">🔮</div>' if not has_image else ''}
-                            </div>
-                            <div class="card-back">
-                                <div style="font-size: 10px; color: var(--gold-2); margin-bottom: 6px; letter-spacing: .05em;">✨ 今日の献立 ✨</div>
-                                <div>{recipe['name']}</div>
-                            </div>
+                # 選択されていない場合は裏面、選択された場合はアニメーション付きで表面（献立名）を描画
+                if not is_selected:
+                    card_html = f"""
+                    <div class="tarot-card-box">
+                        <div class="card-element card-front-face" style="{bg_style}">
+                            {'<div style="color:var(--gold-2); font-size:28px; filter: drop-shadow(0 0 6px rgba(224,196,122,0.8));">🔮</div>' if not has_image else ''}
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
+                    """
+                else:
+                    card_html = f"""
+                    <div class="tarot-card-box">
+                        <div class="card-element card-back-face">
+                            <div style="font-size: 10px; color: var(--gold-2); margin-bottom: 6px; letter-spacing: .05em;">✨ 今日の献立 ✨</div>
+                            <div>{recipe['name']}</div>
+                        </div>
+                    """
+
+                st.markdown(card_html, unsafe_allow_html=True)
 
                 if st.button("", key=f"tarot_btn_{idx}"):
                     st.session_state.tarot_selected_idx = idx
