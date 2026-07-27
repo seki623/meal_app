@@ -2,7 +2,7 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（カード直押し・余計なボタン完全排除版）
+🎯 決定モード（美質感タロットカード・完全カードタップ対応版）
 """
 
 import datetime
@@ -18,7 +18,7 @@ TAROT_BACK_IMAGE = "static/tarot_back.jpg"
 
 def render_decision_page():
     # ==================================================================
-    # 🌸 星空＆アニメーションCSS
+    # 🌸 星空＆美質感タロットCSS
     # ==================================================================
     custom_css = """
     <style>
@@ -137,15 +137,15 @@ def render_decision_page():
         }
 
         /* ------------------------------------
-           ✨ 金色のふわふわ光アニメーション
+           ✨ 金色の光・ボタン基本設定
         ------------------------------------ */
         @keyframes goldGlow {
             0%, 100% {
-                box-shadow: 0 0 12px rgba(201, 169, 79, 0.3);
+                box-shadow: 0 0 12px rgba(201, 169, 79, 0.35);
                 border-color: var(--gold);
             }
             50% {
-                box-shadow: 0 0 22px rgba(224, 196, 122, 0.6);
+                box-shadow: 0 0 24px rgba(224, 196, 122, 0.7);
                 border-color: var(--gold-2);
             }
         }
@@ -169,7 +169,6 @@ def render_decision_page():
             letter-spacing: .05em;
         }
 
-        /* 通常の操作ボタン（シャッフル・ガチャ・保存用） */
         .stButton > button {
             width: 100% !important;
             margin-top: 12px !important;
@@ -185,56 +184,92 @@ def render_decision_page():
             transition: .2s ease !important;
             animation: goldPulseBtn 4s infinite ease-in-out !important;
         }
-        .stButton > button:active {
-            transform: scale(0.98) !important;
-        }
 
         /* ------------------------------------
-           🂠 タロットカード専用ボタンデザイン（黄色ボタンを排除）
+           🂠 完全独立型タロットカードデザイン
         ------------------------------------ */
-        /* カード枠コンテナ内のボタンをカードそのものにする */
-        .card-container div[data-testid="stButton"] > button {
+        .tarot-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            margin-bottom: 12px;
+        }
+
+        /* 本物のタロットカードの見た目 */
+        .real-tarot-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            border: 2px solid var(--gold);
+            animation: goldGlow 4s infinite ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            pointer-events: none; /* 下のボタンへクリックを通過させる */
+            z-index: 1;
+        }
+
+        /* めくられたカード（表面）の美質背景 */
+        .real-tarot-card.card-revealed {
+            background: linear-gradient(145deg, var(--navy-3), var(--navy-2));
+            color: var(--ivory);
+            text-align: center;
+            border-color: var(--gold-2);
+        }
+
+        .card-title-tag {
+            font-size: 11px;
+            color: var(--gold-2);
+            margin-bottom: 8px;
+            letter-spacing: .08em;
+        }
+
+        .card-recipe-name {
+            font-family: 'Shippori Mincho', serif;
+            font-weight: 700;
+            font-size: 16px;
+            line-height: 1.5;
+            text-shadow: 0 0 8px rgba(201, 169, 79, 0.5);
+        }
+
+        /* 🌸 完全不可視（透明）のクリック検知エリア */
+        .tarot-wrapper div[data-testid="stButton"] {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             width: 100% !important;
-            height: 210px !important;
-            margin-top: 0 !important;
-            padding: 12px !important;
-            border-radius: 14px !important;
-            border: 2px solid var(--gold) !important;
-            animation: goldGlow 4s infinite ease-in-out !important;
+            height: 100% !important;
+            z-index: 10 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .tarot-wrapper div[data-testid="stButton"] button {
+            width: 100% !important;
+            height: 220px !important;
+            opacity: 0 !important; /* 完全に透明化 */
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
             cursor: pointer !important;
-            transition: transform 0.25s ease-in-out, background 0.3s !important;
-            white-space: pre-wrap !important;
-            word-break: break-word !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
-        /* カードホバー・アクティブ時 */
-        .card-container div[data-testid="stButton"] > button:hover {
-            transform: translateY(-4px) scale(1.02) !important;
+        /* カードをホバー・タップした時のアニメーション（透明ボタン経由） */
+        .tarot-wrapper:hover .real-tarot-card {
+            transform: translateY(-4px) scale(1.02);
         }
-        .card-container div[data-testid="stButton"] > button:active {
-            transform: scaleX(0) !important; /* 押し込んだ瞬間に横幅0に縮む */
-        }
-
-        /* 裏面カードスタイル */
-        .card-container.back-card div[data-testid="stButton"] > button {
-            color: var(--gold-2) !important;
-            font-size: 32px !important;
-            text-shadow: 0 0 10px rgba(224, 196, 122, 0.8) !important;
-        }
-
-        /* 表面（めくられた後）スタイル */
-        .card-container.front-card div[data-testid="stButton"] > button {
-            background: linear-gradient(145deg, var(--navy-3), var(--navy-2)) !important;
-            color: var(--ivory) !important;
-            font-family: 'Shippori Mincho', serif !important;
-            font-weight: 700 !important;
-            font-size: 15px !important;
-            line-height: 1.5 !important;
-            text-shadow: 0 0 8px rgba(201, 169, 79, 0.6) !important;
-            border-color: var(--gold-2) !important;
+        .tarot-wrapper:active .real-tarot-card {
+            transform: scaleX(0); /* 押し込んだ瞬間にキュッと収縮 */
         }
     </style>
 
@@ -315,38 +350,40 @@ def render_decision_page():
         cols = st.columns(actual_deck_size)
 
         has_image = os.path.exists(TAROT_BACK_IMAGE)
-        bg_style = f"background-image: url('{TAROT_BACK_IMAGE}'); background-size: cover; background-position: center;" if has_image else "background: linear-gradient(135deg, var(--navy-3), var(--navy-2));"
 
         for idx in range(actual_deck_size):
             with cols[idx]:
                 is_selected = (st.session_state.get("tarot_selected_idx") == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
-                # 選択状態によってボタン（＝カード本体）のテキストとクラスを切り替え
+                # 1. 本物のタロットカード（見た目部分）を描画
                 if not is_selected:
-                    btn_text = "🔮" if not has_image else ""
-                    container_class = "card-container back-card"
+                    if has_image:
+                        card_bg = f"background-image: url('{TAROT_BACK_IMAGE}'); background-size: cover; background-position: center;"
+                        inner_content = ""
+                    else:
+                        card_bg = "background: linear-gradient(135deg, var(--navy-3), var(--navy-2));"
+                        inner_content = '<div style="color:var(--gold-2); font-size:32px; filter: drop-shadow(0 0 8px rgba(224,196,122,0.8));">🔮</div>'
+
+                    card_inner_html = f"""
+                    <div class="tarot-wrapper">
+                        <div class="real-tarot-card" style="{card_bg}">
+                            {inner_content}
+                        </div>
+                    """
                 else:
-                    btn_text = f"✨ 今日の献立 ✨\n\n{recipe['name']}"
-                    container_class = "card-container front-card"
+                    card_inner_html = f"""
+                    <div class="tarot-wrapper">
+                        <div class="real-tarot-card card-revealed">
+                            <div class="card-title-tag">✨ 今日の献立 ✨</div>
+                            <div class="card-recipe-name">{recipe['name']}</div>
+                        </div>
+                    """
 
-                # カード枠用のdivで囲む
-                st.markdown(f'<div class="{container_class}">', unsafe_allow_html=True)
+                st.markdown(card_inner_html, unsafe_allow_html=True)
 
-                # 裏面画像がある場合のCSS（動的設定）
-                if not is_selected and has_image:
-                    st.markdown(f"""
-                    <style>
-                        .card-container.back-card div[data-testid="stButton"] > button {{
-                            background-image: url('{TAROT_BACK_IMAGE}') !important;
-                            background-size: cover !important;
-                            background-position: center !important;
-                        }}
-                    </style>
-                    """, unsafe_allow_html=True)
-
-                # ボタンそのものがカードになります
-                if st.button(btn_text, key=f"tarot_card_{idx}"):
+                # 2. カードの真上にぴったり重なる「完全透明なボタン」を配置
+                if st.button("", key=f"tarot_click_{idx}"):
                     st.session_state.tarot_selected_idx = idx
                     st.rerun()
 
