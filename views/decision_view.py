@@ -2,7 +2,7 @@
 """
 views/decision_view.py
 -----------------------
-🎯 決定モード（横幅収縮によるカードめくりアニメーション版）
+🎯 決定モード（カード直接タップ・めくりアニメーション完全対応版）
 """
 
 import datetime
@@ -73,7 +73,6 @@ def render_decision_page():
             animation: twinkle linear infinite;
         }
 
-        /* 30個の星の位置・サイズ・タイミング分散 */
         .ts-1  { top: 08%; left: 12%; width: 2px; height: 2px; animation-duration: 3.2s; animation-delay: 0.0s; }
         .ts-2  { top: 18%; left: 82%; width: 3px; height: 3px; animation-duration: 4.5s; animation-delay: 1.2s; }
         .ts-3  { top: 32%; left: 22%; width: 2px; height: 2px; animation-duration: 2.8s; animation-delay: 2.4s; }
@@ -170,7 +169,6 @@ def render_decision_page():
             letter-spacing: .05em;
         }
 
-        /* Streamlit標準ボタンの装飾（シャッフル・ガチャボタン用） */
         .stButton > button {
             width: 100% !important;
             margin-top: 12px !important;
@@ -191,19 +189,13 @@ def render_decision_page():
         }
 
         /* ------------------------------------
-           🂠 タロットカード＆幅収縮めくりアニメーション
+           🂠 タロットカード＆幅収縮アニメーション
         ------------------------------------ */
         .tarot-card-box {
             position: relative;
             width: 100%;
             height: 200px;
             margin-bottom: 10px;
-        }
-
-        /* 横幅を縮小して広げるフリップアニメーション（0.3秒） */
-        @keyframes flipOpen {
-            0% { transform: scaleX(0); }
-            100% { transform: scaleX(1); }
         }
 
         .card-element {
@@ -223,14 +215,16 @@ def render_decision_page():
             animation: goldGlow 4s infinite ease-in-out;
             pointer-events: none;
             z-index: 1;
+            transition: transform 0.2s ease-in-out;
         }
 
-        .card-front-face {
-            /* 裏面画像を表示 */
+        /* タップ時に横幅を0に縮めるクラス */
+        .card-element.flipping {
+            transform: scaleX(0);
         }
 
+        /* めくられた後の表面 */
         .card-back-face {
-            /* 表面（献立名）を表示 */
             background: linear-gradient(145deg, var(--navy-3), var(--navy-2));
             color: var(--ivory);
             font-family: 'Shippori Mincho', serif;
@@ -238,10 +232,9 @@ def render_decision_page():
             font-size: 15px;
             text-shadow: 0 0 6px rgba(201, 169, 79, 0.5);
             text-align: center;
-            animation: flipOpen 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards, goldGlow 4s infinite ease-in-out;
         }
 
-        /* 🌸 カード領域内の Streamlit ボタンを全面透明化してカードに上書き */
+        /* 🌸 カード上の透明ボタン */
         .tarot-card-box div[data-testid="stButton"] {
             position: absolute !important;
             top: 0 !important;
@@ -261,20 +254,9 @@ def render_decision_page():
             border: none !important;
             outline: none !important;
             box-shadow: none !important;
-            animation: none !important;
             cursor: pointer !important;
             margin: 0 !important;
             padding: 0 !important;
-            color: transparent !important;
-            font-size: 0px !important;
-        }
-        .tarot-card-box div[data-testid="stButton"] button:hover,
-        .tarot-card-box div[data-testid="stButton"] button:focus,
-        .tarot-card-box div[data-testid="stButton"] button:active {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            color: transparent !important;
         }
     </style>
 
@@ -362,13 +344,13 @@ def render_decision_page():
                 is_selected = (st.session_state.get("tarot_selected_idx") == idx)
                 recipe = st.session_state.tarot_deck[idx]
 
-                # 選択されていない場合は裏面、選択された場合はアニメーション付きで表面（献立名）を描画
                 if not is_selected:
                     card_html = f"""
-                    <div class="tarot-card-box">
-                        <div class="card-element card-front-face" style="{bg_style}">
+                    <div class="tarot-card-box" id="card-box-{idx}">
+                        <div class="card-element card-front-face" id="card-elem-{idx}" style="{bg_style}">
                             {'<div style="color:var(--gold-2); font-size:28px; filter: drop-shadow(0 0 6px rgba(224,196,122,0.8));">🔮</div>' if not has_image else ''}
                         </div>
+                    </div>
                     """
                 else:
                     card_html = f"""
@@ -377,15 +359,36 @@ def render_decision_page():
                             <div style="font-size: 10px; color: var(--gold-2); margin-bottom: 6px; letter-spacing: .05em;">✨ 今日の献立 ✨</div>
                             <div>{recipe['name']}</div>
                         </div>
+                    </div>
                     """
 
                 st.markdown(card_html, unsafe_allow_html=True)
 
+                # カード押下時のイベント
                 if st.button("", key=f"tarot_btn_{idx}"):
                     st.session_state.tarot_selected_idx = idx
                     st.rerun()
 
-                st.markdown("</div>", unsafe_allow_html=True)
+        # JavaScriptによるリアルタイムタップ時のアニメーション連動
+        st.components.v1.html("""
+        <script>
+            const doc = window.parent.document;
+            const boxes = doc.querySelectorAll('.tarot-card-box');
+            
+            boxes.forEach((box) => {
+                const btn = box.querySelector('button');
+                const elem = box.querySelector('.card-element');
+                
+                if (btn && elem && !btn.dataset.hasListener) {
+                    btn.dataset.hasListener = "true";
+                    btn.addEventListener('click', (e) => {
+                        // タップ時に幅を0にアニメーション縮小させる
+                        elem.classList.add('flipping');
+                    });
+                }
+            });
+        </script>
+        """, height=0)
 
         # 結果表示
         if st.session_state.get("tarot_selected_idx") is not None and st.session_state.tarot_selected_idx < actual_deck_size:
