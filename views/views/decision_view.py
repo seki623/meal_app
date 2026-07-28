@@ -406,8 +406,11 @@ def render_decision_page():
 
             meal_time_for_log = st.selectbox("この結果を記録する食事区分", db.MEAL_TIME_CATEGORIES, key="tarot_log_time")
             if st.button("この結果を今日の記録に追加する", key="save_tarot_log"):
+                # 【設計変更対応】add_meal_log は「器」を作る/再利用するだけの関数になったため、
+                # 品目としての紐づけは add_meal_log_item で別途行う
                 today_str = datetime.date.today().strftime("%Y-%m-%d")
-                db.add_meal_log(today_str, meal_time_for_log, chosen_recipe["id"], "")
+                meal_log_id = db.add_meal_log(today_str, meal_time_for_log)
+                db.add_meal_log_item(meal_log_id=meal_log_id, recipe_id=chosen_recipe["id"])
                 st.success("記録モードに保存いたしましたわ！")
 
     # ==================================================================
@@ -444,5 +447,6 @@ def render_decision_page():
             meal_time_for_log2 = st.selectbox("この結果を記録する食事区分", db.MEAL_TIME_CATEGORIES, key="gacha_log_time")
             if st.button("この結果を今日の記録に追加する", key="save_gacha_log"):
                 today_str = datetime.date.today().strftime("%Y-%m-%d")
-                db.add_meal_log(today_str, meal_time_for_log2, r["id"], "")
+                meal_log_id = db.add_meal_log(today_str, meal_time_for_log2)
+                db.add_meal_log_item(meal_log_id=meal_log_id, recipe_id=r["id"])
                 st.success("記録モードに保存いたしましたわ！")

@@ -18,20 +18,61 @@ def render_search_page():
     with tab_search:
         st.subheader("条件を指定して絞り込み")
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            cuisine_filter = st.selectbox("料理ジャンル", ["すべて"] + db.CUISINE_CATEGORIES)
-        with col2:
-            meal_filter = st.selectbox("種別（主菜/副菜など）", ["すべて"] + db.MEAL_TYPE_CATEGORIES)
-        with col3:
-            all_tags = db.get_all_ingredient_tags()
-            ingredient_filter = st.multiselect("含まれる材料で絞り込み", all_tags)
-
-        results = db.search_recipes(
-            ingredient_query=ingredient_filter if ingredient_filter else None,
-            cuisine_category=cuisine_filter,
-            meal_category=meal_filter,
+        # 料理ジャンル・種別は st.pills でチップ風のタップ選択に変更
+        # （st.selectbox の代わりに複数選択可能なチップとして提示する）
+        cuisine_selected = st.pills(
+            "料理ジャンル",
+            db.CUISINE_CATEGORIES,
+            selection_mode="multi",
+            key="chip_cuisine",
         )
+        meal_selected = st.pills(
+            "種別（主菜/副菜など）",
+            db.MEAL_TYPE_CATEGORIES,
+            selection_mode="multi",
+            key="chip_meal",
+        )
+
+        # 食材は「抽出チップ」＋「フリーワード」の併用
+        st.markdown("**食材で絞り込み**")
+        freeword = st.text_input(
+            "食材名の一部を入力",
+            placeholder="例：ねぎ",
+            key="ingredient_freeword",
+            label_visibility="collapsed",
+        )
+        all_tags = db.get_all_ingredient_tags()
+        ingredient_chips = st.pills(
+            "よく使う食材から選ぶ",
+            all_tags,
+            selection_mode="multi",
+            key="chip_ingredients",
+            label_visibility="collapsed",
+        )
+
+        # フリーワードとチップの両方を1つの検索条件リストにまとめる
+        # （db.search_recipes の ingredient_query は部分一致のOR判定なので、
+        #  そのまま両方の入力を合流させられる）
+        ingredient_query = list(ingredient_chips) if ingredient_chips else []
+        if freeword.strip():
+            ingredient_query.append(freeword.strip())
+
+        # st.pills は複数選択時にリストを返すため、既存の search_recipes が
+        # 期待する単一カテゴリ文字列に変換する（未選択時は「すべて」扱い）
+        # ジャンル・種別を複数選んだ場合はOR条件として複数回検索して結合する
+        cuisine_options = cuisine_selected if cuisine_selected else ["すべて"]
+        meal_options = meal_selected if meal_selected else ["すべて"]
+
+        results_map = {}
+        for c in cuisine_options:
+            for m in meal_options:
+                for r in db.search_recipes(
+                    ingredient_query=ingredient_query if ingredient_query else None,
+                    cuisine_category=c,
+                    meal_category=m,
+                ):
+                    results_map[r["id"]] = r
+        results = list(results_map.values())
 
         st.markdown(f"**{len(results)} 件のレシピが見つかりました**")
         for r in results:

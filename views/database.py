@@ -16,6 +16,8 @@ from supabase import create_client, Client
 CUISINE_CATEGORIES = ["和食", "洋食", "中華", "その他"]
 MEAL_TYPE_CATEGORIES = ["主菜", "副菜", "主食", "その他"]
 MEAL_TIME_CATEGORIES = ["朝食", "昼食", "夕食"]
+# 1食の中の各品目に付ける役割タグ（ごはん・おかず・みそ汁など）
+MEAL_ROLE_CATEGORIES = ["主食", "主菜", "副菜", "その他"]
 
 # ------------------------------------------------------------------
 # 🌸 Supabase 接続設定
@@ -143,59 +145,121 @@ def get_all_ingredient_tags() -> List[str]:
 # ------------------------------------------------------------------
 # 食事記録（meal_logs）関連 CRUD
 # ------------------------------------------------------------------
-def add_meal_log(
-    log_date: str,
-    meal_time: str,
-    recipe_id: Optional[int] = None,
-    free_text: str = "",
-) -> int:
-    """指定日の食事記録を追加する"""
-    data = {
-        "log_date": log_date,
-        "meal_time": meal_time,
-        "recipe_id": recipe_id,
-        "free_text": free_text, 
-    }
+# 【設計変更】
+# meal_logs は「2026-07-09の夕食」という“器”だけを持つテーブルに変更。
+# 実際の品目（白ご飯・肉じゃが・味噌汁など）は meal_log_items に
+# 複数レコードとして格納し、role（主食/主菜/副菜/その他）を付与する。
+# これにより「1食に複数のレシピを記録したい」という要件に対応する。
+
+def add_meal_log(log_date: str, meal_time: str) -> int:
+    """
+    指定日・指定食事区分の「器」を作成する（まだ品目は空の状態）。
+    既に同じ日付・食事区分の器が存在する場合はそのIDを返す（重複作成を防ぐ）。
+    """
+    existing = (
+        supabase.table("meal_logs")
+        .select("id")
+        .eq("log_date", log_date)
+        .eq("meal_time", meal_time)
+        .execute()
+    )
+    if existing.data:
+        return existing.data[0]["id"]
+
+    data = {"log_date": log_date, "meal_time": meal_time}
     response = supabase.table("meal_logs").insert(data).execute()
     if response.data:
         return response.data[0]["id"]
     return -1
 
 
+def add_meal_log_item(
+    meal_log_id: int,
+    recipe_id: Optional[int] = None,
+    free_text: str = "",
+    role: str = "その他",
+    sort_order: int = 0,
+) -> int:
+    """指定した「器」（meal_log_id）に1品目を追加する"""
+    data = {
+        "meal_log_id": meal_log_id,
+        "recipe_id": recipe_id,
+        "free_text": free_text,
+        "role": role,
+        "sort_order": sort_order,
+    }
+    response = supabase.table("meal_log_items").insert(data).execute()
+    if response.data:
+        return response.data[0]["id"]
+    return -1
+
+
+def delete_meal_log_item(item_id: int) -> bool:
+    """品目を1件削除する（器自体は残る）"""
+    response = supabase.table("meal_log_items").delete().eq("id", item_id).execute()
+    return bool(response.data)
+
+
 def delete_meal_log(log_id: int) -> bool:
-    """食事記録を削除する"""
+    """
+    食事記録（器）を削除する。
+    meal_log_items 側は外部キーに on delete cascade を設定しているため、
+    紐づく品目も自動的に削除される。
+    """
     response = supabase.table("meal_logs").delete().eq("id", log_id).execute()
     return bool(response.data)
 
 
 def get_meal_logs_by_date(log_date: str) -> List[Dict[str, Any]]:
-    """指定日の食事記録を取得する（レシピ名等も結合）"""
+    """
+    指定日の食事記録を「器＋品目リスト」の形で取得する。
+    戻り値の各要素は以下の形:
+        {
+            "id": 器のID,
+            "log_date": "2026-07-09",
+            "meal_time": "夕食",
+            "items": [
+                {"id":.., "recipe_id":.., "recipe_name":.., "free_text":.., "role":"主食", ...},
+                {"id":.., "recipe_id":.., "recipe_name":.., "free_text":.., "role":"主菜", ...},
+                ...
+            ]
+        }
+    """
     response = (
         supabase.table("meal_logs")
-        .select("*, recipes(*)")
+        .select("*, meal_log_items(*, recipes(*))")
         .eq("log_date", log_date)
         .execute()
     )
     logs = response.data or []
-    
-    # 並び順の整列用マップ（朝食->昼食->夕食）
+
     order_map = {"朝食": 1, "昼食": 2, "夕食": 3}
+    role_order = {"主食": 1, "主菜": 2, "副菜": 3, "その他": 4}
 
     result = []
     for log in logs:
         log_dict = dict(log)
-        recipe_data = log_dict.pop("recipes", None)
-        if recipe_data:
-            log_dict["recipe_name"] = recipe_data.get("name")
-            log_dict["cuisine_category"] = recipe_data.get("cuisine_category")
-            log_dict["meal_category"] = recipe_data.get("meal_category")
-        else:
-            log_dict["recipe_name"] = None
-            log_dict["cuisine_category"] = None
-            log_dict["meal_category"] = None
+        raw_items = log_dict.pop("meal_log_items", []) or []
+
+        items = []
+        for item in raw_items:
+            item_dict = dict(item)
+            recipe_data = item_dict.pop("recipes", None)
+            if recipe_data:
+                item_dict["recipe_name"] = recipe_data.get("name")
+                item_dict["cuisine_category"] = recipe_data.get("cuisine_category")
+                item_dict["meal_category"] = recipe_data.get("meal_category")
+            else:
+                item_dict["recipe_name"] = item_dict.get("free_text") or None
+                item_dict["cuisine_category"] = None
+                item_dict["meal_category"] = None
+            items.append(item_dict)
+
+        # 主食→主菜→副菜→その他の順に整列
+        items.sort(key=lambda x: (role_order.get(x.get("role"), 9), x.get("sort_order", 0)))
+        log_dict["items"] = items
         result.append(log_dict)
 
-    # 時間帯順にソート
     result.sort(key=lambda x: order_map.get(x.get("meal_time"), 4))
     return result
 
